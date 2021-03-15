@@ -32,7 +32,7 @@ jobs:
         pip freeze
     - name: Test with pytest
       run: |
-        coverage run -m --source=shapelink pytest --ignore=benchmarking_tests/*
+        coverage run -m --source=shapelink pytest --ignore=tests/benchmarking_tests
     - name: Run Benchmark with pytest-benchmark
       run: |
         coverage run -m --source=shapelink pytest tests/benchmarking_tests/test_basic_plugin.py --benchmark-json output_gh.json
