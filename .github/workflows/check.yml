@@ -32,10 +32,13 @@ jobs:
         pip freeze
     - name: Print out benchmark info
       run: |
-        echo "::group::My title"
-        echo "Inside group"
-        echo "./.benchmarks/Windows-CPython-3.8-64bit/0001_eoghanoconnell_180321.json"
-        echo "::endgroup::"
+        content = "cat Windows-CPython-3.8-64bit/0001_eoghanoconnell_180321.json"
+        # the following lines are only required for multi line json
+        content="${content//'%'/'%25'}"
+        content="${content//$'\n'/'%0A'}"
+        content="${content//$'\r'/'%0D'}"
+        # end of optional handling for multi line json
+        echo $content
     - name: Test with pytest
       run: |
         coverage run -m --source=shapelink pytest --ignore=tests/benchmarking_tests
