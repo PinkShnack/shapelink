@@ -35,7 +35,7 @@ jobs:
         coverage run -m --source=shapelink pytest --ignore=tests/benchmarking_tests
     - name: Run Benchmark with pytest-benchmark
       run: |
-        coverage run -m pytest tests/benchmarking_tests/test_basic_plugin.py --benchmark-compare="Windows-CPython-3.8-64bit/0001_eoghanoconnell_180321" --benchmark-compare-fail=median:5%
+        coverage run -m pytest tests/benchmarking_tests/test_basic_plugin.py --benchmark-compare="Windows-CPython-3.8-64bit/0001_eoghanoconnell_180321" --benchmark-compare-fail=median:10%
     - name: Lint with flake8
       run: |
         flake8 .
