@@ -31,13 +31,17 @@ jobs:
         # show installed packages
         pip freeze
     - name: Print out benchmark info
-      run: echo Windows-CPython-3.8-64bit/0001_eoghanoconnell_180321.json
+      run: |
+        echo "::group::My title"
+        echo "Inside group"
+        echo "./.benchmarks/Windows-CPython-3.8-64bit/0001_eoghanoconnell_180321.json"
+        echo "::endgroup::"
     - name: Test with pytest
       run: |
         coverage run -m --source=shapelink pytest --ignore=tests/benchmarking_tests
     - name: Run Benchmark with pytest-benchmark
       run: |
-        coverage run -m pytest tests/benchmarking_tests/test_basic_plugin.py --benchmark-compare="Windows-CPython-3.8-64bit/0001_eoghanoconnell_180321"
+        pytest tests/benchmarking_tests/test_basic_plugin.py --benchmark-compare="Windows-CPython-3.8-64bit/0001_eoghanoconnell_180321"
     - name: Lint with flake8
       run: |
         flake8 .
