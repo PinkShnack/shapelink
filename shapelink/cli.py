@@ -6,7 +6,6 @@ import threading
 import click
 
 from . import shapein_simulator
-from .feat_def import check_for_allowed_features
 
 
 @click.group()
