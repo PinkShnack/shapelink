@@ -12,12 +12,14 @@ import numpy as np
 from PySide2 import QtCore
 import zmq
 
-from . import msg_def
+from .msg_def import message_ids
 from .util import qstream_write_array
+import dclab.definitions as dfn
 
 
 class ShapeInSimulator:
     def __init__(self, destination="tcp://localhost:6666", verbose=False):
+        self.destination = destination
         self.verbose = verbose
         if self.verbose:
             print("Init ShapeIn Simulator")
@@ -39,7 +41,7 @@ class ShapeInSimulator:
         # prepare message in byte stream
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
-        msg_stream.writeInt64(msg_def.MSG_ID_FEATURE_REQ)
+        msg_stream.writeInt64(message_ids["MSG_ID_FEATURE_REQ"])
 
         try:
             if self.verbose:
@@ -59,7 +61,7 @@ class ShapeInSimulator:
             feats.append(rcv_stream.readQStringList())
 
         r = rcv_stream.readInt64()
-        if r == msg_def.MSG_ID_FEATURE_REQ_ACK:
+        if r == message_ids["MSG_ID_FEATURE_REQ_ACK"]:
             if self.verbose:
                 print("Feature Request ACK")
         else:
@@ -105,7 +107,7 @@ class ShapeInSimulator:
         # prepare message in byte stream
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
-        msg_stream.writeInt64(msg_def.MSG_ID_REGISTER)
+        msg_stream.writeInt64(message_ids["MSG_ID_REGISTER"])
 
         # send parameters
         msg_stream.writeQStringList(scalar_reg_features)
@@ -132,7 +134,7 @@ class ShapeInSimulator:
 
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
         r = rcv_stream.readInt64()
-        if r == msg_def.MSG_ID_REGISTER_ACK:
+        if r == message_ids["MSG_ID_REGISTER_ACK"]:
             if self.verbose:
                 print("Registration ACK")
             self.registered = True
@@ -194,7 +196,7 @@ class ShapeInSimulator:
         # prepare message in byte stream
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
-        msg_stream.writeInt64(msg_def.MSG_ID_EOT)
+        msg_stream.writeInt64(message_ids["MSG_ID_EOT"])
 
         # reset state
         self.registered = False
@@ -214,7 +216,7 @@ class ShapeInSimulator:
             return
         rcv_stream = QtCore.QDataStream(rcv_data, QtCore.QIODevice.ReadOnly)
         r = rcv_stream.readInt64()
-        if r != msg_def.MSG_ID_EOT_ACK:
+        if r != message_ids["MSG_ID_EOT_ACK"]:
             print("Did not receive ACK for EOT but: ", r)
         else:
             if self.verbose:
@@ -251,11 +253,15 @@ def start_simulator(path, features=None, destination="tcp://localhost:6666",
             features = ds.features_innate
         s = ShapeInSimulator(destination=destination)
 
-        # check for user plugin-defined features
-        feats = s.send_request_for_features()
-        if feats is not None:
-            sc_features, tr_features, im_features = feats
+        # check for user plugin-defined features, which override the CLI
+        plugin_features = s.send_request_for_features()
+        if plugin_features is not None:
+            sc_features, tr_features, im_features = plugin_features
         else:
+            for feat in features:
+                if not dfn.feature_exists(feat, scalar_only=False):
+                    raise ValueError("Invalid feature name '{}'".format(feat))
+
             sc_features = sorted(set(ds.features_scalar)
                                  & set(ds.features)
                                  & set(features))
