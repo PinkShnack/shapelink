@@ -7,6 +7,22 @@ on:
   - cron: "0 0 1 * *"
 
 jobs:
+  testJob:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - id: set_var
+        run: |
+          content=`cat ./path/to/package.json`
+          # the following lines are only required for multi line json
+          content="${content//'%'/'%25'}"
+          content="${content//$'\n'/'%0A'}"
+          content="${content//$'\r'/'%0D'}"
+          # end of optional handling for multi line json
+          echo "::set-output name=packageJson::$content"
+      - run: |
+          echo "${{fromJson(steps.set_var.outputs.packageJson).version}}"
+
   build:
 
     runs-on: ${{ matrix.os }}
@@ -30,15 +46,6 @@ jobs:
         pip install -e .[all]
         # show installed packages
         pip freeze
-    - name: Print out benchmark info
-      run: |
-        content = "cat Windows-CPython-3.8-64bit/0001_eoghanoconnell_180321.json"
-        # the following lines are only required for multi line json
-        content="${content//'%'/'%25'}"
-        content="${content//$'\n'/'%0A'}"
-        content="${content//$'\r'/'%0D'}"
-        # end of optional handling for multi line json
-        echo "::set-output name=example::$content"
     - name: Test with pytest
       run: |
         coverage run -m --source=shapelink pytest --ignore=tests/benchmarking_tests
