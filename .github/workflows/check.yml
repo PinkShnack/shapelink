@@ -13,7 +13,7 @@ jobs:
     steps:
       - id: set_var
         run: |
-          content=`cat ./shapelink/0001_eoghanoconnell_180321.json`
+          content=`cat shapelink/0001_eoghanoconnell_180321.json`
           # the following lines are only required for multi line json
           content="${content//'%'/'%25'}"
           content="${content//$'\n'/'%0A'}"
