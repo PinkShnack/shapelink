@@ -38,7 +38,7 @@ jobs:
         content="${content//$'\n'/'%0A'}"
         content="${content//$'\r'/'%0D'}"
         # end of optional handling for multi line json
-        echo $content
+        echo "::set-output name=example::$content"
     - name: Test with pytest
       run: |
         coverage run -m --source=shapelink pytest --ignore=tests/benchmarking_tests
