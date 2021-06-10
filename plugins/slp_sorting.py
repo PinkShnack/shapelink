@@ -66,6 +66,7 @@ class RTDCSortingComputeFeatureShapeLinkPlugin(ShapeLinkPlugin):
                 trigger = True
 
             print(emod)
+
         # example logging output
         print(str(trigger))
 
