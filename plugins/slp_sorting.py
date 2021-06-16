@@ -9,11 +9,11 @@ data_dir = pathlib.Path(__file__).parent / "../tests/data"
 ds_test = dclab.new_dataset(data_dir / "calibration_beads_47.rtdc")
 
 
-class RTDCSortingComputeFeatureShapeLinkPlugin(ShapeLinkPlugin):
+class RTDCSortingBasicShapeLinkPlugin(ShapeLinkPlugin):
     """Check if the aspect ratio is correctly calculated.
     Shows a user how to choose features"""
     def __init__(self, *args, **kwargs):
-        super(RTDCSortingComputeFeatureShapeLinkPlugin, self).__init__(*args, **kwargs)
+        super(RTDCSortingBasicShapeLinkPlugin, self).__init__(*args, **kwargs)
 
     def after_register(self):
         print(" Preparing for transmission")
@@ -55,9 +55,9 @@ class RTDCSortingComputeFeatureShapeLinkPlugin(ShapeLinkPlugin):
 
 
 info = {
-    "class": RTDCSortingComputeFeatureShapeLinkPlugin,
+    "class": RTDCSortingBasicShapeLinkPlugin,
     "description": "Gates the feature info and send trigger to "
-                   "surface acoustic wave software",
-    "name": "RTDC Sorting",
+                   "surface acoustic wave (SAW) software",
+    "name": "RTDC Sorting Basic",
     "version": "0.1.0",
 }
