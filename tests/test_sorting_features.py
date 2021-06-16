@@ -13,14 +13,14 @@ data_dir = pathlib.Path(__file__).parent / "data"
 ds_test = dclab.new_dataset(data_dir / "calibration_beads_47.rtdc")
 
 
-class RTDCSortingSendFeaturesShapeLinkPlugin(ShapeLinkPlugin):
+class RTDCSortingCheckFeaturesShapeLinkPlugin(ShapeLinkPlugin):
     def choose_features(self):
         user_feats = [
             'area_ratio', 'area_um', 'bright_avg', 'deform', 'index']
         return user_feats
 
     def handle_event(self, event_data: EventData) -> bool:
-        """Test for sending the relevant sorting features"""
+        """Test for checking the relevant sorting feature data"""
 
         assert self.reg_features.scalars == [
             'area_ratio', 'area_um', 'bright_avg', 'deform', 'index']
@@ -41,6 +41,16 @@ class RTDCSortingSendFeaturesShapeLinkPlugin(ShapeLinkPlugin):
         return False
 
 
+class RTDCSortingSendFeaturesShapeLinkPlugin(ShapeLinkPlugin):
+    def choose_features(self):
+        user_feats = ['area_ratio', 'area_um', 'bright_avg', 'deform']
+        return user_feats
+
+    def handle_event(self, event_data: EventData) -> bool:
+        """Test for sending the relevant sorting features"""
+        return False
+
+
 class RTDCSortingComputeEMODFeatureShapeLinkPlugin(ShapeLinkPlugin):
     def choose_features(self):
         user_feats = ['area_um', 'deform', 'index']
@@ -48,8 +58,6 @@ class RTDCSortingComputeEMODFeatureShapeLinkPlugin(ShapeLinkPlugin):
 
     def handle_event(self, event_data: EventData) -> bool:
         """Compute the emodulus from transferred features"""
-
-        assert self.reg_features.scalars == ['area_um', 'deform', 'index']
 
         area_um, deform, index = event_data.scalars
         # compute emodulus
@@ -80,9 +88,6 @@ class RTDCSortingGateFeatureShapeLinkPlugin(ShapeLinkPlugin):
         - Send a trigger to the surface acoustic wave software if the
           object needs to be sorted into the target
         """
-
-        assert self.reg_features.scalars == [
-            'area_ratio', 'area_um', 'bright_avg', 'deform']
 
         area_ratio, area_um, bright_avg, deform = event_data.scalars
 
@@ -116,9 +121,6 @@ class RTDCSortingGateEMODFeatureShapeLinkPlugin(ShapeLinkPlugin):
           object needs to be sorted into the target
         """
 
-        assert self.reg_features.scalars == [
-            'area_ratio', 'area_um', 'bright_avg', 'deform']
-
         area_ratio, area_um, bright_avg, deform = event_data.scalars
 
         # whether to sent a trigger to the surface acoustic wave software
@@ -146,8 +148,13 @@ class RTDCSortingGateEMODFeatureShapeLinkPlugin(ShapeLinkPlugin):
         return False
 
 
-def test_rtdc_sorting_send_features():
+def test_rtdc_sorting_check_features():
     """Check the sorting-related scalar information"""
+    run_plugin_feature_transfer(RTDCSortingCheckFeaturesShapeLinkPlugin)
+
+
+def test_rtdc_sorting_send_features():
+    """Send the sorting-related scalar information"""
     run_plugin_feature_transfer(RTDCSortingSendFeaturesShapeLinkPlugin)
 
 
