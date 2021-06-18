@@ -10,8 +10,7 @@ ds_test = dclab.new_dataset(data_dir / "calibration_beads_47.rtdc")
 
 
 class RTDCSortingBasicShapeLinkPlugin(ShapeLinkPlugin):
-    """Check if the aspect ratio is correctly calculated.
-    Shows a user how to choose features"""
+    """Simulate the gates used for sorting rtdc data live"""
     def __init__(self, *args, **kwargs):
         super(RTDCSortingBasicShapeLinkPlugin, self).__init__(*args, **kwargs)
 
@@ -26,7 +25,7 @@ class RTDCSortingBasicShapeLinkPlugin(ShapeLinkPlugin):
         return user_feats
 
     def handle_event(self, event_data):
-        """Filter the feature information an trigger pulse
+        """Gate the feature information and display sorted events
 
         - Set the desired gates/filters for each filter
         - Compute the emodulus from transferred features
@@ -38,7 +37,7 @@ class RTDCSortingBasicShapeLinkPlugin(ShapeLinkPlugin):
 
         area_ratio, area_um, bright_avg, deform = event_data.scalars
 
-        # whether to sent a trigger to the surface wave software
+        # used to sent a trigger to the surface acoustic wave software
         trigger = False
         # example gates/filters
         rules = [1.0 < area_ratio < 1.2,
