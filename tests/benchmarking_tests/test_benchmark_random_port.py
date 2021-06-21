@@ -1,5 +1,5 @@
 
-from tests import test_random_port
+from .. import test_random_port
 
 
 def test_benchmark_simulator_random_port(benchmark):

@@ -1,5 +1,5 @@
 
-from tests import test_sorting_features as tsf
+from .. import test_sorting_features as tsf
 
 
 def test_benchmark_simulator_sorting_send_features(benchmark):

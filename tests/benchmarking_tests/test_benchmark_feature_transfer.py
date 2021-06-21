@@ -1,5 +1,5 @@
 
-from tests import test_feature_transfer_speed as fts
+from .. import test_feature_transfer_speed as fts
 
 
 def test_benchmark_simulator_fts_scalar_single(benchmark):
