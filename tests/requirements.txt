@@ -1,0 +1,7 @@
+pytest
+opencv-python-headless
+nrefocus[FFTW]
+qpimage
+pytest-benchmark
+pandas
+matplotlib
