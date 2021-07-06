@@ -106,8 +106,8 @@ Actions, follow the steps below:
    GitHub Actions currently builds a matrix of OS and Python versions.
    Therefore, minor warnings will appear stating that the OS or Python versions
    don't match the current benchmark comparison files. You can ignore this
-   warning. We recommend using the output from the Ubuntu-py3.8 build to create
-   the new benchmark file.
+   warning. We recommend using the output from the Ubuntu-py3.7 build to create
+   the new benchmark file, as it is the slowest.
 
 1. Push your changes. Then go to the GitHub Actions build tab on GitHub. If the
    benchmarking tests passed, open the "Benchmark with pytest-benchmark"
