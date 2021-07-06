@@ -6,13 +6,14 @@ from shapelink import shapein_simulator
 data_dir = pathlib.Path(__file__).parent / "data"
 
 
-def run_plugin_feature_transfer(shapelink_plugin, random_port=True):
+def run_plugin_feature_transfer(shapelink_plugin, random_port=True,
+                                data_file="calibration_beads_47.rtdc"):
     # setup plugin
     p = shapelink_plugin(random_port=random_port)
     port_address = p.port_address
     # create new thread for simulator
     th = threading.Thread(target=shapein_simulator.start_simulator,
-                          args=(str(data_dir / "calibration_beads_47.rtdc"),
+                          args=(str(data_dir / data_file),
                                 None,
                                 "tcp://localhost:{}".format(port_address), 0)
                           )

@@ -10,7 +10,7 @@ from shapelink.shapelink_plugin import EventData
 from .helper_methods import run_plugin_feature_transfer
 
 data_dir = pathlib.Path(__file__).parent / "data"
-ds_test = dclab.new_dataset(data_dir / "calibration_beads_47.rtdc")
+ds_test = dclab.new_dataset(data_dir / "calibration_beads_47_emod.rtdc")
 
 
 class RTDCSortingCheckFeaturesShapeLinkPlugin(ShapeLinkPlugin):
@@ -158,12 +158,14 @@ def test_rtdc_sorting_gate():
 
 def test_rtdc_sorting_compute_emod():
     """Compute emodulus"""
-    run_plugin_feature_transfer(RTDCSortingComputeEMODFeatureShapeLinkPlugin)
+    run_plugin_feature_transfer(RTDCSortingComputeEMODFeatureShapeLinkPlugin,
+                                data_file="calibration_beads_47_emod.rtdc")
 
 
 def test_rtdc_sorting_gate_emod():
     """Check the sorting information against some gates (incl. emod)"""
-    run_plugin_feature_transfer(RTDCSortingGateEMODFeatureShapeLinkPlugin)
+    run_plugin_feature_transfer(RTDCSortingGateEMODFeatureShapeLinkPlugin,
+                                data_file="calibration_beads_47_emod.rtdc")
 
 
 if __name__ == "__main__":
