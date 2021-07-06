@@ -1,5 +1,5 @@
 0.2.1
- - test: tests for sorting, plugin for sorting
+ - test: tests for sorting, plugin for sorting, Emod test dataset
  - test: tests for autofocus, plugin for autofocus
  - test: speed tests and benchmarking for features, new benchmarking tools
    and docs guide

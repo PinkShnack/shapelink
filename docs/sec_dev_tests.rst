@@ -115,7 +115,7 @@ Actions, follow the steps below:
 2. Under the "===== passed =====" log, copy the contents of the `output.json`
    file. Do not copy the ZMQ errors.
    Paste in a new `.json` file in your local repo in the
-   `./.benchmarks/actions_benchmarks` folder. This file should be named
+   `./.benchmarks_github_actions` folder. This file should be named
    similar to: `ActionsBenchmark_21-03-19_UBUNTUpy38.json`, where the date should
    change (yy-mm-dd).
 3. Open the `./.github/workflows/checks.yml` file and replace the name of the
