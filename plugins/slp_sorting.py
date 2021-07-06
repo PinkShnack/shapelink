@@ -1,12 +1,5 @@
 
-import pathlib
-import dclab
-
 from shapelink import ShapeLinkPlugin
-
-
-data_dir = pathlib.Path(__file__).parent / "../tests/data"
-ds_test = dclab.new_dataset(data_dir / "calibration_beads_47.rtdc")
 
 
 class RTDCSortingBasicShapeLinkPlugin(ShapeLinkPlugin):
