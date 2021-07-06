@@ -138,15 +138,16 @@ class ChooseImageFeaturesShapeLinkPlugin(ShapeLinkPlugin):
         assert len(image.shape) == 2, "should be two axes, x and y"
         assert len(mask.shape) == 2, "should be two axes, x and y"
 
-        image_known = ds_test["image"][0]
-        contour_known = ds_test["contour"][0]
-        mask_known = ds_test["mask"][0]
+        image_known = ds_test["image"]
+        contour_known = ds_test["contour"]
+        mask_known = ds_test["mask"]
 
+        # dclab["index"] starts at 1
+        index = int(index - 1)
         # check that the data matches between before and after transfer
-        if index == 1:  # dclab["index"] starts at 1
-            assert np.allclose(image, image_known)
-            assert np.allclose(contour, contour_known)
-            assert np.allclose(mask, mask_known)
+        assert np.allclose(image, image_known[index])
+        assert np.allclose(contour, contour_known[index])
+        assert np.allclose(mask, mask_known[index])
 
         return False
 

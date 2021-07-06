@@ -1,5 +1,5 @@
 
-from tests import test_autofocus as af
+from .. import test_autofocus as af
 
 
 def test_benchmark_simulator_autofocus_coarse(benchmark):
