@@ -1,0 +1,3 @@
+python misc\swap_server_and_client\server.py
+
+python misc\swap_server_and_client\client.py
