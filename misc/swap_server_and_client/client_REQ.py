@@ -38,12 +38,6 @@ while new_event == "New event":
     if data == "Data Finished":
         new_event = data
 
-# for i in range(10):  # length of the dataset?
-#     time.sleep(0.5)
-#     socket.send_string("event code")  # number code
-#     ret = socket.recv_string()
-#     print(ret.split(" "))
-
 
 socket.send_string("end code")  # number code
 ret = socket.recv_string()
