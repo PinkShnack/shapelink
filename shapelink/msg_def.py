@@ -18,7 +18,6 @@ message_ids = {
     # other new codes
     "MSG_ID_feats_code": -50,
     "MSG_ID_feats_code_reply": -51,
-    "MSG_ID_feats_received_reply": -52,
     "MSG_ID_params_code": -60,
     "MSG_ID_events_code": -70,
 }

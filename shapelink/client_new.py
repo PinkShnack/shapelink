@@ -3,6 +3,7 @@ import zmq
 import time
 from threading import Thread
 from PySide2 import QtCore
+import numpy as np
 
 from shapelink.PS_threads import subscriber_thread
 from shapelink.msg_def import message_ids
@@ -25,12 +26,29 @@ send_data = QtCore.QByteArray()
 send_stream = QtCore.QDataStream(send_data, QtCore.QIODevice.WriteOnly)
 
 
+class EventData:
+    def __init__(self):
+        self.id = -1
+        self.scalars = list()
+        self.traces = list()
+        self.images = list()
+
 # Metadata steps
 # Ask if the server is ready for the chosen features
 
 
-def tell_server_features_will_now_be_sent():
+def send_features_to_server(send_stream):
     send_stream.writeInt64(message_ids["MSG_ID_feats_code"])
+
+    # send features
+    sc_features, tr_features, im_features = ['deform'], ['other'], ['thing']
+    feats = list((sc_features, tr_features, im_features))
+    assert isinstance(feats, list), "feats is a list"
+    assert len(feats) == 3
+    # feats must be sent one by one, list of lists doesn't work
+    for feat in feats:
+        send_stream.writeQStringList(feat)
+
     socket_RR.send(send_data)
 
     message = socket_RR.recv()
@@ -38,37 +56,46 @@ def tell_server_features_will_now_be_sent():
     rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
     r = rcv_stream.readInt64()
     if r == message_ids["MSG_ID_feats_code_reply"]:
-        print("Received confirmation to send features")
-        # prompt the send_features_to_server function?
+        print("Features successfully received by server")
     else:
         raise ValueError("ID code not correct, should be "
                          f"{message_ids['MSG_ID_feats_code_reply']}")
 
 
-def send_features_to_server():
-    user_feats = ["deform"]  # actualy get features from plugin
-    feats = [user_feats, [], []]
-    assert isinstance(feats, list), "feats is a list"
-    assert len(feats) == 3
-    # feats must be sent one by one, list of lists doesn't work
-    for feat in feats:
-        send_stream.writeQStringList(feat)
+def register_parameters():
+    print('\n')
+    print("Registering Parameters")
+    msg = QtCore.QByteArray()
+    msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+    msg_stream.writeInt64(message_ids["MSG_ID_params_code"])
+    socket_RR.send(msg)
 
-    # ths is repeated code, could be a function.
     message = socket_RR.recv()
     rcv = QtCore.QByteArray(message)
     rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
-    r = rcv_stream.readInt64()
-    if r == message_ids["MSG_ID_feats_received_reply"]:
-        print("Received confirmation that features received")
-        # prompt the send_features_to_server function?
-    else:
-        raise ValueError("ID code not correct, should be "
-                         f"{message_ids['MSG_ID_feats_received_reply']}")
+
+    eventdata = EventData()
+    eventdata.scalars = rcv_stream.readQStringList()
+    eventdata.traces = rcv_stream.readQStringList()
+    eventdata.images = rcv_stream.readQStringList()
+    image_shape = qstream_read_array(rcv_stream, np.uint16)
+    # image_shape_len = 2
+    scalar_len = len(eventdata.scalars)
+    vector_len = len(eventdata.traces)
+    image_len = len(eventdata.images)
+    # print(image_shape_len)
+    # print(image_shape)
+    # assert image_shape_len == len(image_shape)
+
+    print(" Registered data container formats:")
+    print(" scalars:", eventdata.scalars)
+    print(" traces:", eventdata.traces)
+    print(" images:", eventdata.images)
+    print(" image_shape:", image_shape)
 
 
-tell_server_features_will_now_be_sent()
-send_features_to_server()
+send_features_to_server(send_stream)
+register_parameters()
 
 '''
 
