@@ -1,3 +1,7 @@
+python shapelink\server_new.py
+python shapelink\client_new.py
+
+
 python misc\swap_server_and_client\server_both_sockets.py
 
 python misc\swap_server_and_client\client_both_sockets.py

@@ -21,6 +21,8 @@ def subscriber_thread():
 
     while True:
         data = socket_PS.recv_string()
+        # run the plugin run_event_message then handle_event
+        # which will execute your custom plugin
         topic, messagedata = data.split()
         print(messagedata)
 
