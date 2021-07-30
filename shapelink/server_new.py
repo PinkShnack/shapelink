@@ -16,17 +16,9 @@ socket_RR = context_RR.socket(zmq.REP)
 socket_RR.bind("tcp://*:6667")
 
 running = True
-c = 0
-
-
-# msg = QtCore.QByteArray()
-# msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
-# msg_stream.writeInt64(message_ids["MSG_ID_FEATURE_REQ"])
 
 
 while running:
-    c += 1
-    print(f"{c}")
     message = socket_RR.recv()
     rcv = QtCore.QByteArray(message)
     rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
@@ -34,6 +26,7 @@ while running:
     print(r)
 
     if r == message_ids["MSG_ID_feats_code"]:
+        print("\n 1b.1")
         print("Feature code received")
         # receive the features
         print("Receiving features...")
@@ -52,7 +45,7 @@ while running:
         socket_RR.send(msg)
 
     elif r == message_ids["MSG_ID_params_code"]:
-        print("\n")
+        print("\n 1b.2")
         print("Registering Parameters")
         # maybe have feats saved to the class as a list?
         # wn't get the "feats may be undefined" warning then.
@@ -79,7 +72,7 @@ while running:
         socket_RR.send(msg)
 
     elif r == message_ids["MSG_ID_events_code"]:
-        print("\n")
+        print("\n 2b.")
         print("Starting Publisher Thread")
         pub_thread = Thread(target=publisher_thread)
         pub_thread.daemon = True
@@ -90,13 +83,13 @@ while running:
         time.sleep(10)
 
         # reply saying that server has completed transfer of all data
+        print("\n 2c.")
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeInt64(message_ids["MSG_ID_events_code_complete"])
         socket_RR.send(msg)
 
     elif r == message_ids["MSG_ID_end"]:
-        print("\n")
         print("Ending and Closing")
         # stop the while loop after exciting this elif statement
         running = False

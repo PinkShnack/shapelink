@@ -1,6 +1,5 @@
 
 import zmq
-import time
 from threading import Thread
 from PySide2 import QtCore
 import numpy as np
@@ -8,9 +7,6 @@ import numpy as np
 from shapelink.PS_threads import subscriber_thread
 from shapelink.msg_def import message_ids
 from shapelink.util import qstream_read_array
-from shapelink.feat_util import map_requested_features_to_defined_features
-
-
 
 
 context_RR = zmq.Context.instance()
@@ -28,12 +24,8 @@ class EventData:
         self.traces = list()
         self.images = list()
 
-# Metadata steps
-# Ask if the server is ready for the chosen features
-
 
 def send_features_to_server():
-
     # send features
     # features defined by user plugin `choose_features`
     sc_features, tr_features, im_features = ['deform'], ['other'], ['thing']
@@ -41,10 +33,13 @@ def send_features_to_server():
     assert isinstance(feats, list), "feats is a list"
     assert len(feats) == 3
 
+    print("\n 1a.1")
+    print("Sending Features code")
     msg = QtCore.QByteArray()
     msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
     msg_stream.writeInt64(message_ids["MSG_ID_feats_code"])
     # feats must be sent one by one, list of lists doesn't work
+    print("Sending Features")
     for feat in feats:
         msg_stream.writeQStringList(feat)
     socket_RR.send(msg)
@@ -60,8 +55,8 @@ def send_features_to_server():
 
 
 def register_parameters():
-    print('\n')
-    print("Registering Parameters")
+    print('\n 1a.2')
+    print("Requesting Parameters")
     msg = QtCore.QByteArray()
     msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
     msg_stream.writeInt64(message_ids["MSG_ID_params_code"])
@@ -69,6 +64,7 @@ def register_parameters():
 
     eventdata = EventData()
 
+    print("Receiving Parameters...")
     rcv = QtCore.QByteArray(socket_RR.recv())
     rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
     eventdata.scalars = rcv_stream.readQStringList()
@@ -95,7 +91,7 @@ def request_data_transfer():
     # make sure to start the subscriber before the publisher to
     # not miss data transfer
     # start separate thread for data transfer
-    print("\n")
+    print("\n 2a.")
     print("Starting Subscriber Thread")
     sub_thread = Thread(target=subscriber_thread)
     sub_thread.daemon = True
@@ -121,8 +117,8 @@ def request_data_transfer():
 
 def end_and_close_transfer():
 
-    print("\n")
-    print("Requesting End to Transfer")
+    print("\n 2d.")
+    print("Prompting End to Process")
     msg = QtCore.QByteArray()
     msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
     msg_stream.writeInt64(message_ids["MSG_ID_end"])
@@ -141,52 +137,10 @@ def end_and_close_transfer():
     print("Client closed")
 
 
+# Metadata Transfer
 send_features_to_server()
 register_parameters()
+# Data Transfer
 request_data_transfer()
+# Close Process
 end_and_close_transfer()
-
-
-'''
-socket_RR.send_string("feats code")  # number code
-time.sleep(sleep_time)
-ret = socket_RR.recv_string()
-if ret == "Please send the feats":
-    socket_RR.send_string("Here is a list of feats")  # number code
-    time.sleep(sleep_time)
-    confirm = socket_RR.recv_string()
-    print(confirm)
-
-print("Starting Params")
-time.sleep(sleep_time)
-
-socket_RR.send_string("params code")  # number code
-ret = socket_RR.recv_string()
-print(f"Pretend params: {ret.split(' ')}")
-time.sleep(sleep_time)
-
-# make sure to start the subscriber before the publisher to
-# not miss data transfer
-
-# start separate thread for data transfer
-sub_thread = Thread(target=subscriber_thread)
-sub_thread.daemon = True
-sub_thread.start()
-
-# now trigger the publisher thread to start
-print("Starting Data Transfer")
-socket_RR.send_string("event code")
-
-
-# When server is finished sending data, it should send a message via the
-# REP socket_RR. This is simulated here:
-end_data_transfer = socket_RR.recv_string()
-if end_data_transfer == "Data Transfer Finished":
-    print(end_data_transfer)
-
-    socket_RR.send_string("end code")  # number code
-    ret = socket_RR.recv_string()
-    print(ret)
-else:
-    raise ValueError(f"The received message was not '{end_data_transfer}'")
-'''
