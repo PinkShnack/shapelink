@@ -33,4 +33,4 @@ def publisher_thread():
         event_id = random.randint(1, 10)
         messagedata = f"data_{event_id}"
         socket_PS.send_string(f"{code}, {messagedata}")
-        time.sleep(sleep_time)
+        time.sleep(0.5)

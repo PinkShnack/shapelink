@@ -5,7 +5,7 @@ from threading import Thread
 from PySide2 import QtCore
 import numpy as np
 
-from shapelink.PS_threads import subscriber_thread
+from shapelink.PS_threads import publisher_thread
 from shapelink.msg_def import message_ids
 from shapelink.util import qstream_write_array
 
@@ -17,11 +17,7 @@ socket_RR.bind("tcp://*:6667")
 
 running = True
 c = 0
-sleep_time = 0.5
 
-# setup data streams
-send_data = QtCore.QByteArray()
-send_stream = QtCore.QDataStream(send_data, QtCore.QIODevice.WriteOnly)
 
 # msg = QtCore.QByteArray()
 # msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
@@ -48,13 +44,18 @@ while running:
         # check that the features are correct...
         assert isinstance(feats, list), "feats is a list"
         assert len(feats) == 3
+
         # reply saying that server has received the features
-        send_stream.writeInt64(message_ids["MSG_ID_feats_code_reply"])
-        socket_RR.send(send_data)
+        msg = QtCore.QByteArray()
+        msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+        msg_stream.writeInt64(message_ids["MSG_ID_feats_code_reply"])
+        socket_RR.send(msg)
 
     elif r == message_ids["MSG_ID_params_code"]:
         print("\n")
         print("Registering Parameters")
+        # maybe have feats saved to the class as a list?
+        # wn't get the "feats may be undefined" warning then.
         scalar_reg_features = feats[0]
         vector_reg_features = feats[1]
         image_reg_features = feats[2]
@@ -62,43 +63,53 @@ while running:
         vector_len = len(vector_reg_features)
         image_len = len(image_reg_features)
         image_names = image_reg_features
-
         image_shape = np.array([80, 250])
         image_shape_len = len(image_shape)
 
         # prepare message in byte stream
-        msg = QtCore.QByteArray()
-        msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
-
         # send parameters
         print("Sending Parameters")
+
+        msg = QtCore.QByteArray()
+        msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeQStringList(scalar_reg_features)
         msg_stream.writeQStringList(vector_reg_features)
         msg_stream.writeQStringList(image_reg_features)
         qstream_write_array(msg_stream, image_shape)
         socket_RR.send(msg)
 
-        break
-
-'''
-    elif r == "event code":
-        # to be done in another thread
+    elif r == message_ids["MSG_ID_events_code"]:
+        print("\n")
+        print("Starting Publisher Thread")
         pub_thread = Thread(target=publisher_thread)
         pub_thread.daemon = True
         pub_thread.start()
 
-        # in current thread, simulate some time
-        # used to send data
-        time.sleep(sleep_time*20)
-        end_data_transfer = "Data Transfer Finished"
-        socket_RR.send_string(end_data_transfer)
-        print(end_data_transfer)
+        # in current thread, simulate some time used to send data
+        print("Sending data...")
+        time.sleep(10)
 
-    elif r == "end code":
-        print("Finishing...")
-        socket_RR.send_string("Finishing and Closing")
+        # reply saying that server has completed transfer of all data
+        msg = QtCore.QByteArray()
+        msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+        msg_stream.writeInt64(message_ids["MSG_ID_events_code_complete"])
+        socket_RR.send(msg)
+
+    elif r == message_ids["MSG_ID_end"]:
+        print("\n")
+        print("Ending and Closing")
+        # stop the while loop after exciting this elif statement
         running = False
 
+        # confirm that the server is closing
+        msg = QtCore.QByteArray()
+        msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+        msg_stream.writeInt64(message_ids["MSG_ID_end_reply"])
+        socket_RR.send(msg)
+
+        print("Server closed")
+
+        # break
     else:
-        raise ValueError("bad code")
-'''
+        raise ValueError("Did not understand message received from Client: "
+                         f"{r}")

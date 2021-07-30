@@ -21,11 +21,6 @@ socket_RR.connect("tcp://localhost:6667")
 sleep_time = 0.5
 
 
-# setup data streams
-send_data = QtCore.QByteArray()
-send_stream = QtCore.QDataStream(send_data, QtCore.QIODevice.WriteOnly)
-
-
 class EventData:
     def __init__(self):
         self.id = -1
@@ -37,22 +32,24 @@ class EventData:
 # Ask if the server is ready for the chosen features
 
 
-def send_features_to_server(send_stream):
-    send_stream.writeInt64(message_ids["MSG_ID_feats_code"])
+def send_features_to_server():
 
     # send features
+    # features defined by user plugin `choose_features`
     sc_features, tr_features, im_features = ['deform'], ['other'], ['thing']
     feats = list((sc_features, tr_features, im_features))
     assert isinstance(feats, list), "feats is a list"
     assert len(feats) == 3
+
+    msg = QtCore.QByteArray()
+    msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+    msg_stream.writeInt64(message_ids["MSG_ID_feats_code"])
     # feats must be sent one by one, list of lists doesn't work
     for feat in feats:
-        send_stream.writeQStringList(feat)
+        msg_stream.writeQStringList(feat)
+    socket_RR.send(msg)
 
-    socket_RR.send(send_data)
-
-    message = socket_RR.recv()
-    rcv = QtCore.QByteArray(message)
+    rcv = QtCore.QByteArray(socket_RR.recv())
     rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
     r = rcv_stream.readInt64()
     if r == message_ids["MSG_ID_feats_code_reply"]:
@@ -70,11 +67,10 @@ def register_parameters():
     msg_stream.writeInt64(message_ids["MSG_ID_params_code"])
     socket_RR.send(msg)
 
-    message = socket_RR.recv()
-    rcv = QtCore.QByteArray(message)
-    rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
-
     eventdata = EventData()
+
+    rcv = QtCore.QByteArray(socket_RR.recv())
+    rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
     eventdata.scalars = rcv_stream.readQStringList()
     eventdata.traces = rcv_stream.readQStringList()
     eventdata.images = rcv_stream.readQStringList()
@@ -94,11 +90,64 @@ def register_parameters():
     print(" image_shape:", image_shape)
 
 
-send_features_to_server(send_stream)
+def request_data_transfer():
+
+    # make sure to start the subscriber before the publisher to
+    # not miss data transfer
+    # start separate thread for data transfer
+    print("\n")
+    print("Starting Subscriber Thread")
+    sub_thread = Thread(target=subscriber_thread)
+    sub_thread.daemon = True
+    sub_thread.start()
+
+    # now trigger the publisher thread to start
+    print("Requesting Data Transfer")
+    msg = QtCore.QByteArray()
+    msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+    msg_stream.writeInt64(message_ids["MSG_ID_events_code"])
+    socket_RR.send(msg)
+
+    # receive confirmation that the server has completed transfer of all data
+    rcv = QtCore.QByteArray(socket_RR.recv())
+    rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
+    r = rcv_stream.readInt64()
+    if r == message_ids["MSG_ID_events_code_complete"]:
+        print("Data transfer complete")
+    else:
+        raise ValueError("ID code not correct, should be "
+                         f"{message_ids['MSG_ID_events_code_complete']}")
+
+
+def end_and_close_transfer():
+
+    print("\n")
+    print("Requesting End to Transfer")
+    msg = QtCore.QByteArray()
+    msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+    msg_stream.writeInt64(message_ids["MSG_ID_end"])
+    socket_RR.send(msg)
+
+    # receive confirmation that the server has closed
+    rcv = QtCore.QByteArray(socket_RR.recv())
+    rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
+    r = rcv_stream.readInt64()
+    if r == message_ids["MSG_ID_end_reply"]:
+        print("Server closed")
+    else:
+        raise ValueError("ID code not correct, should be "
+                         f"{message_ids['MSG_ID_end_reply']}")
+
+    print("Client closed")
+
+
+send_features_to_server()
 register_parameters()
+request_data_transfer()
+end_and_close_transfer()
+
 
 '''
-
 socket_RR.send_string("feats code")  # number code
 time.sleep(sleep_time)
 ret = socket_RR.recv_string()

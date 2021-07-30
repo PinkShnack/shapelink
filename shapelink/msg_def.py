@@ -20,4 +20,7 @@ message_ids = {
     "MSG_ID_feats_code_reply": -51,
     "MSG_ID_params_code": -60,
     "MSG_ID_events_code": -70,
+    "MSG_ID_events_code_complete": -71,
+    "MSG_ID_end": -80,
+    "MSG_ID_end_reply": -81,
 }
