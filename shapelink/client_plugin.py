@@ -78,7 +78,7 @@ class ShapeLinkPlugin(abc.ABC):
     def send_features_to_server(self):
         # send features
         # features defined by user plugin `choose_features`
-        sc_features, tr_features, im_features = ['deform'], ['other'], ['thing']
+        sc_features, tr_features, im_features = ['deform'], ['trace'], ['image']
         feats = list((sc_features, tr_features, im_features))
         assert isinstance(feats, list), "feats is a list"
         assert len(feats) == 3
