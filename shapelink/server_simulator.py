@@ -96,13 +96,13 @@ class ServerSimulator:
         print("Feature code received")
         # receive the features
         print("Receiving features...")
-        feats = []
+        self.feats = []
         for i in range(3):
             feat = rcv_stream.readQStringList()
-            feats.append(feat)
+            self.feats.append(feat)
         # check that the features are correct...
-        assert isinstance(feats, list), "feats is a list"
-        assert len(feats) == 3
+        assert isinstance(self.feats, list), "feats is a list"
+        assert len(self.feats) == 3
         # reply saying that server has received the features
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
@@ -112,11 +112,9 @@ class ServerSimulator:
     def register_parameters(self):
         print("\n 1b.2")
         print("Registering Parameters")
-        # maybe have feats saved to the class as a list?
-        # wn't get the "feats may be undefined" warning then.
-        scalar_reg_features = feats[0]
-        vector_reg_features = feats[1]
-        image_reg_features = feats[2]
+        scalar_reg_features = self.feats[0]
+        vector_reg_features = self.feats[1]
+        image_reg_features = self.feats[2]
         self.scalar_len = len(scalar_reg_features)
         self.vector_len = len(vector_reg_features)
         self.image_len = len(image_reg_features)

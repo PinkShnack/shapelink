@@ -1,3 +1,6 @@
+python shapelink\server_simulator.py
+python shapelink\client_plugin.py
+
 python shapelink\server_new.py
 python shapelink\client_new.py
 
