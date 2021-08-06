@@ -16,6 +16,7 @@ message_ids = {
     "MSG_ID_FEATURE_REQ_ACK": -21,
 
     # other new codes
+    "MSG_ps_socket": -40,
     "MSG_ID_feats_code": -50,
     "MSG_ID_feats_code_reply": -51,
     "MSG_ID_params_code": -60,

@@ -5,15 +5,16 @@ from threading import Thread
 from PySide2 import QtCore
 import numpy as np
 
-from shapelink.PS_threads import publisher_thread
+from shapelink.ps_threads import publisher_thread
 from shapelink.msg_def import message_ids
 from shapelink.util import qstream_write_array
 
 
 context_RR = zmq.Context.instance()
 socket_RR = context_RR.socket(zmq.REP)
-
-socket_RR.bind("tcp://*:6667")
+# The RR port number should be four digits long
+bind_to = 'tcp://*:6667'
+socket_RR.bind(bind_to)
 
 running = True
 
@@ -25,7 +26,22 @@ while running:
     r = rcv_stream.readInt64()
     print(r)
 
-    if r == message_ids["MSG_ID_feats_code"]:
+    if r == message_ids["MSG_PS_socket"]:
+        # connect up the PS socket
+        print("PS server binding...")
+        context = zmq.Context.instance()
+        socket_PS = context.socket(zmq.PUB)
+        ip_address = bind_to[:-5]
+        port_address = socket_PS.bind_to_random_port(ip_address)
+        print(f"PS server bound to {ip_address}:{port_address}")
+        # send the port_address to the client
+        msg = QtCore.QByteArray()
+        msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+        msg_stream.writeQStringList([ip_address])
+        msg_stream.writeInt64(port_address)
+        socket_RR.send(msg)
+
+    elif r == message_ids["MSG_ID_feats_code"]:
         print("\n 1b.1")
         print("Feature code received")
         # receive the features
@@ -74,7 +90,8 @@ while running:
     elif r == message_ids["MSG_ID_events_code"]:
         print("\n 2b.")
         print("Starting Publisher Thread")
-        pub_thread = Thread(target=publisher_thread)
+        pub_thread = Thread(target=publisher_thread,
+                            args=(socket_PS, ))
         pub_thread.daemon = True
         pub_thread.start()
 

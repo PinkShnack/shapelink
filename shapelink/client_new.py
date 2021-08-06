@@ -4,14 +4,13 @@ from threading import Thread
 from PySide2 import QtCore
 import numpy as np
 
-from shapelink.PS_threads import subscriber_thread
+from shapelink.ps_threads import subscriber_thread
 from shapelink.msg_def import message_ids
 from shapelink.util import qstream_read_array
 
 
 context_RR = zmq.Context.instance()
 socket_RR = context_RR.socket(zmq.REQ)
-
 socket_RR.connect("tcp://localhost:6667")
 
 sleep_time = 0.5
@@ -23,6 +22,32 @@ class EventData:
         self.scalars = list()
         self.traces = list()
         self.images = list()
+
+
+def connect_PS_socket():
+    # request the PS port and id from the server
+    msg = QtCore.QByteArray()
+    msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+    msg_stream.writeInt64(message_ids["MSG_PS_socket"])
+    socket_RR.send(msg)
+    # recv the PS port and id from the server
+    rcv = QtCore.QByteArray(socket_RR.recv())
+    rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
+    ip_address = rcv_stream.readQStringList()
+    port_address = rcv_stream.readInt64()
+    if len(ip_address) == 1:
+        ip_address = ip_address[0]
+        ip_address = ip_address.replace('*', 'localhost:')
+    else:
+        raise ValueError("len(ip_address) != 1,"
+                         f"len(ip_address) == {len(ip_address)} instead")
+    print(f"PS client connecting to {ip_address}{port_address}")
+
+    # connect up the PS socket
+    context_PS = zmq.Context.instance()
+    socket_PS = context_PS.socket(zmq.SUB)
+    socket_PS.connect(f"{ip_address}{port_address}")
+    return socket_PS
 
 
 def send_features_to_server():
@@ -86,14 +111,15 @@ def register_parameters():
     print(" image_shape:", image_shape)
 
 
-def request_data_transfer():
+def request_data_transfer(socket_PS):
 
     # make sure to start the subscriber before the publisher to
     # not miss data transfer
     # start separate thread for data transfer
     print("\n 2a.")
     print("Starting Subscriber Thread")
-    sub_thread = Thread(target=subscriber_thread)
+    sub_thread = Thread(target=subscriber_thread,
+                        args=(socket_PS, ))
     sub_thread.daemon = True
     sub_thread.start()
 
@@ -137,10 +163,12 @@ def end_and_close_transfer():
     print("Client closed")
 
 
+# Connect PS socket
+socket_PS = connect_PS_socket()
 # Metadata Transfer
 send_features_to_server()
 register_parameters()
 # Data Transfer
-request_data_transfer()
+request_data_transfer(socket_PS)
 # Close Process
 end_and_close_transfer()
