@@ -9,7 +9,7 @@ import numpy as np
 from shapelink.ps_threads import subscriber_thread
 from shapelink.msg_def import message_ids
 from shapelink.util import qstream_read_array
-from feat_util import map_requested_features_to_defined_features
+from shapelink.feat_util import map_requested_features_to_defined_features
 
 
 class EventData:
