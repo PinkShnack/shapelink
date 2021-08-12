@@ -1,6 +1,5 @@
 
 import zmq
-from threading import Thread
 from PySide2 import QtCore
 import numpy as np
 

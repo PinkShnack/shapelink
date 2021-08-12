@@ -1,7 +1,6 @@
 
 import zmq
 import time
-import random
 import numpy as np
 import dclab
 from typing import List
@@ -14,7 +13,7 @@ topicfilter = b'A'
 
 
 def subscriber_thread(client_object):
-    # start separate thread
+    # run in separate thread
 
     client_object.socket_ps.setsockopt(zmq.SUBSCRIBE, topicfilter)
 
@@ -24,25 +23,20 @@ def subscriber_thread(client_object):
         # which will execute your custom plugin
         # topic, messagedata = data.split()
         # print(messagedata)
-        [topic, data] = client_object.socket_ps.recv_multipart()
-        client_object.handle_event(data)
+        [_, data] = client_object.socket_ps.recv_multipart()
+        rcv = QtCore.QByteArray(data)
+        rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
+        e = client_object.run_event_message(rcv_stream)
+        client_object.handle_event(e)
 
 
 def publisher_thread(server_object):
-
-    # while True:
-    #     code = "A"
-    #     event_id = random.randint(1, 10)
-    #     messagedata = f"data_{event_id}"
-    #     server_object.socket_ps.send_string(f"{code}, {messagedata}")
-    #     time.sleep(0.5)
-
-    send_event_data(server_object)
+    send_dataset(server_object)
 
 
 # The job of this function is to simulate the shapein sending transfer
 # It just sends the events as they come
-def send_event_data(server_object):
+def send_dataset(server_object):
     sc_features, tr_features, im_features = server_object.feats
     with dclab.new_dataset(server_object.simulator_path) as ds:
         if server_object.verbose:

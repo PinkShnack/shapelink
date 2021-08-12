@@ -37,6 +37,7 @@ class ShapeLinkPlugin(abc.ABC):
         self.image_shape = None
         self.image_shape_len = 2
         self.feats = []
+        self.reg_features = EventData()
         self.registered = False
         self.response = list()
         self.sleep_time = 0.5
@@ -127,27 +128,25 @@ class ShapeLinkPlugin(abc.ABC):
         msg_stream.writeInt64(message_ids["MSG_ID_params_code"])
         self.socket_rr.send(msg)
 
-        eventdata = EventData()
-
         print("Receiving Parameters...")
         rcv = QtCore.QByteArray(self.socket_rr.recv())
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
-        eventdata.scalars = rcv_stream.readQStringList()
-        eventdata.traces = rcv_stream.readQStringList()
-        eventdata.images = rcv_stream.readQStringList()
+        self.reg_features.scalars = rcv_stream.readQStringList()
+        self.reg_features.traces = rcv_stream.readQStringList()
+        self.reg_features.images = rcv_stream.readQStringList()
         self.image_shape = qstream_read_array(rcv_stream, np.uint16)
         # image_shape_len = 2
-        self.scalar_len = len(eventdata.scalars)
-        self.vector_len = len(eventdata.traces)
-        self.image_len = len(eventdata.images)
+        self.scalar_len = len(self.reg_features.scalars)
+        self.vector_len = len(self.reg_features.traces)
+        self.image_len = len(self.reg_features.images)
         # print(image_shape_len)
         # print(image_shape)
         # assert image_shape_len == len(image_shape)
 
         print(" Registered data container formats:")
-        print(" scalars:", eventdata.scalars)
-        print(" traces:", eventdata.traces)
-        print(" images:", eventdata.images)
+        print(" scalars:", self.reg_features.scalars)
+        print(" traces:", self.reg_features.traces)
+        print(" images:", self.reg_features.images)
         print(" image_shape:", self.image_shape)
 
     def request_data_transfer(self):
@@ -202,10 +201,46 @@ class ShapeLinkPlugin(abc.ABC):
 
         print("Client closed")
 
+    def run_event_message(self, rcv_stream):
+        e = EventData()
+        r = rcv_stream.readInt64()
+        e.id = r
+
+        if self.scalar_len > 0:
+            e.scalars = qstream_read_array(rcv_stream, np.float64)
+            assert len(e.scalars) == self.scalar_len
+
+        if self.vector_len > 0:
+            n_traces = rcv_stream.readUInt32()
+            assert n_traces == self.vector_len
+            # read traces piece by piece
+            for i in range(n_traces):
+                e.traces.append(qstream_read_array(rcv_stream, np.int16))
+
+        if self.image_len > 0:
+            n_images = rcv_stream.readUInt32()
+            assert n_images == self.image_len
+            # read images piece by piece, checking for binary mask
+            for im_name in self.reg_features.images:
+                if im_name == "mask":
+                    mask_data = qstream_read_array(rcv_stream, np.bool_)
+                    e.images.append(mask_data.reshape(self.image_shape))
+                elif im_name == "contour":
+                    contour_data = qstream_read_array(rcv_stream, np.uint8)
+                    e.images.append(
+                        contour_data.reshape(len(contour_data) // 2, 2))
+                elif im_name == "image":
+                    image_data = qstream_read_array(rcv_stream, np.uint8)
+                    e.images.append(image_data.reshape(self.image_shape))
+                else:
+                    raise ValueError(
+                        "Image feature '{}' not recognised".format(im_name))
+        return e
+
     # @abc.abstractmethod
     def handle_event(self, event_data: EventData) -> bool:
         """Abstract method to be overridden by plugins implementations"""
-        print(event_data)
+        print(f"Data is: {event_data.scalars}")
         return False
 
     # @abc.abstractmethod
@@ -220,7 +255,8 @@ class ShapeLinkPlugin(abc.ABC):
         --features (-f) option of the command line interface.
 
         """
-        return list()
+        # return list()
+        return ["deform"]
 
 
 def run_client():
