@@ -228,5 +228,6 @@ class ServerSimulator:
         print("Server closed")
 
 
-s = ServerSimulator()
-s.run_server()
+def start_simulator():
+    s = ServerSimulator()
+    s.run_server()

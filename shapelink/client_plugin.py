@@ -216,5 +216,6 @@ class ShapeLinkPlugin(abc.ABC):
         return list()
 
 
-cl = ShapeLinkPlugin()
-cl.run_client()
+def run_client():
+    cl = ShapeLinkPlugin()
+    cl.run_client()
