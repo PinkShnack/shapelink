@@ -12,6 +12,7 @@ from shapelink.util import qstream_write_array
 
 class ServerSimulator:
     def __init__(self,
+                 path=None,
                  bind_to='tcp://*:6667',
                  random_port=False,
                  verbose=False):
@@ -36,6 +37,8 @@ class ServerSimulator:
         self.ip_address_ps = None
         self.context_ps = None
         self.socket_ps = None
+        # path to data
+        self.data_path = path
 
     def _bind_to_socket_rr(self, bind_to, random_port):
         self.context_rr = zmq.Context.instance()
@@ -175,6 +178,9 @@ class ServerSimulator:
         if image_reg_features is None:
             image_reg_features = self.feats[2]
         if image_shape is None:
+            # should send image shape from server to client and include it
+            # as a EventData attribute so it can be returned to plugin
+            # for analysis
             image_shape = np.array([80, 250], dtype=np.uint16)
         assert len(settings_values) == len(
             settings_names), "Mismatch setting names and values"
@@ -201,7 +207,7 @@ class ServerSimulator:
         print("2b.")
         print("Starting Publisher Thread")
         pub_thread = Thread(target=publisher_thread,
-                            args=(self.socket_ps,))
+                            args=(self,))
         pub_thread.daemon = True
         pub_thread.start()
 
@@ -228,6 +234,6 @@ class ServerSimulator:
         print("Server closed")
 
 
-def start_simulator():
+def start_simulator(path):
     s = ServerSimulator()
     s.run_server()

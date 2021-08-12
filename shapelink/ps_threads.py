@@ -2,9 +2,15 @@
 import zmq
 import time
 import random
+import numpy as np
+import dclab
+from typing import List
+from PySide2 import QtCore
+
+from shapelink.util import qstream_write_array
 
 
-def subscriber_thread(socket):
+def subscriber_thread(socket, handle_event_func):
     # start separate thread
 
     topicfilter = "A"
@@ -16,17 +22,95 @@ def subscriber_thread(socket):
         # which will execute your custom plugin
         topic, messagedata = data.split()
         print(messagedata)
+        # e = socket.recv()
+        # parse out the topicfilter
+        # handle_event_func(e)
 
 
-def publisher_thread(socket):
-    # to be done in another thread
-    # this initial connection should not be done here. What if there
-    # is a connection issue at this point? Makes the initial metadata
-    # transfer useless
+def publisher_thread(server_object):
 
-    while True:
-        code = "A"
-        event_id = random.randint(1, 10)
-        messagedata = f"data_{event_id}"
-        socket.send_string(f"{code}, {messagedata}")
-        time.sleep(0.5)
+    # while True:
+    #     code = "A"
+    #     event_id = random.randint(1, 10)
+    #     messagedata = f"data_{event_id}"
+    #     server_object.socket_ps.send_string(f"{code}, {messagedata}")
+    #     time.sleep(0.5)
+
+    send_event_data(server_object)
+
+
+# The job of this function is to simulate the shapein sending transfer
+# It just sends the events as they come
+def send_event_data(server_object):
+    sc_features, tr_features, im_features = server_object.feats
+    with dclab.new_dataset(server_object.data_path) as ds:
+        if server_object.verbose:
+            print("Opened dataset", ds.identifier, ds.title)
+
+        if server_object.verbose:
+            print("Send event data:")
+        for event_index in range(len(ds)):
+            scalars = list()
+            vectors = list()
+            images = list()
+
+            for feat in sc_features:
+                scalars.append(ds[feat][event_index])
+            for feat in tr_features:
+                tr = np.array(ds['trace'][feat][event_index], dtype=np.int16)
+                vectors.append(tr)
+            for feat in im_features:
+                if ds[feat][event_index].dtype == bool:
+                    im = np.array(ds[feat][event_index], dtype=bool)
+                else:
+                    im = np.array(ds[feat][event_index], dtype=np.uint8)
+                images.append(im)
+
+            send_event(server_object,
+                       event_index,
+                       np.array(scalars, dtype=np.float64),
+                       vectors,
+                       images)
+
+
+def send_event(server_object,
+               event_id: int,
+               scalar_values: np.array,
+               # vector of vector of short
+               vector_values: List[np.array],
+               image_values: List[np.array]):
+    """Send a single event to the other process"""
+
+    # prepare message in byte stream
+    msg = QtCore.QByteArray()
+    msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
+    msg_stream.writeInt64(event_id)
+
+    assert len(scalar_values) == server_object.scalar_len
+    assert len(vector_values) == server_object.vector_len
+    assert len(image_values) == server_object.image_len
+    assert np.issubdtype(scalar_values.dtype, np.floating)
+
+    if server_object.scalar_len > 0:
+        qstream_write_array(msg_stream, scalar_values)
+
+    if server_object.vector_len > 0:
+        msg_stream.writeUInt32(server_object.vector_len)
+        for e in vector_values:
+            assert e.dtype == np.int16, "fluorescence data is int16"
+            qstream_write_array(msg_stream, e)
+
+    if server_object.image_len > 0:
+        msg_stream.writeUInt32(server_object.image_len)
+        for (im_name, e) in zip(server_object.image_names, image_values):
+            if im_name == "mask":
+                assert e.dtype == np.bool_, "'mask' data is bool"
+            else:
+                assert e.dtype == np.uint8, "'image' data is uint8"
+            qstream_write_array(msg_stream, e.flatten())
+
+    try:
+        # send the message over the socket
+        server_object.socket_ps.send(msg)
+    except zmq.error.ZMQError:
+        print("ZMQ Error")
