@@ -40,15 +40,20 @@ class ShapeLinkPlugin(abc.ABC):
         self.registered = False
         self.response = list()
         self.sleep_time = 0.5
+        # ps attributes
+        self.port_address_ps = None
+        self.ip_address_ps = None
+        self.context_ps = None
+        self.socket_ps = None
 
     def run_client(self):
         # Connect ps socket
-        socket_ps = self.connect_ps_socket()
+        self.connect_ps_socket()
         # Metadata Transfer
         self.send_features_to_server()
         self.register_parameters()
         # Data Transfer
-        self.request_data_transfer(socket_ps)
+        self.request_data_transfer()
         # Close Process
         self.end_and_close_transfer()
 
@@ -61,21 +66,21 @@ class ShapeLinkPlugin(abc.ABC):
         # recv the ps port and id from the server
         rcv = QtCore.QByteArray(self.socket_rr.recv())
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
-        ip_address = rcv_stream.readQStringList()
-        port_address = rcv_stream.readInt64()
-        if len(ip_address) == 1:
-            ip_address = ip_address[0]
-            ip_address = ip_address.replace('*', 'localhost:')
+        ip_address_ps = rcv_stream.readQStringList()
+        self.port_address_ps = rcv_stream.readInt64()
+        if len(ip_address_ps) == 1:
+            ip_address_ps = ip_address_ps[0]
+            self.ip_address_ps = ip_address_ps.replace('*', 'localhost:')
         else:
             raise ValueError("len(ip_address) != 1,"
-                             f"len(ip_address) == {len(ip_address)} instead")
-        print(f"ps client connecting to {ip_address}{port_address}")
+                             f"len(ip_address) == {len(ip_address_ps)} instead")
+
+        print(f"ps client connecting to {self.ip_address_ps}{self.port_address_ps}")
 
         # connect up the ps socket
-        context_ps = zmq.Context.instance()
-        socket_ps = context_ps.socket(zmq.SUB)
-        socket_ps.connect(f"{ip_address}{port_address}")
-        return socket_ps
+        self.context_ps = zmq.Context.instance()
+        self.socket_ps = self.context_ps.socket(zmq.SUB)
+        self.socket_ps.connect(f"{self.ip_address_ps}{self.port_address_ps}")
 
     def send_features_to_server(self):
         # send features
@@ -145,16 +150,11 @@ class ShapeLinkPlugin(abc.ABC):
         print(" images:", eventdata.images)
         print(" image_shape:", self.image_shape)
 
-    def request_data_transfer(self, socket_ps):
+    def request_data_transfer(self):
         # make sure to start the subscriber before the publisher to
         # not miss data transfer
         # start separate thread for data transfer
-        print("\n 2a.")
-        print("Starting Subscriber Thread")
-        sub_thread = Thread(target=subscriber_thread,
-                            args=(socket_ps, ))
-        sub_thread.daemon = True
-        sub_thread.start()
+        self.start_subscriber_thread()
 
         # now trigger the publisher thread to start
         print("Requesting Data Transfer")
@@ -172,6 +172,14 @@ class ShapeLinkPlugin(abc.ABC):
         else:
             raise ValueError("ID code not correct, should be "
                              f"{message_ids['MSG_ID_events_code_complete']}")
+
+    def start_subscriber_thread(self):
+        print("\n 2a.")
+        print("Starting Subscriber Thread")
+        sub_thread = Thread(target=subscriber_thread,
+                            args=(self.socket_ps,))
+        sub_thread.daemon = True
+        sub_thread.start()
 
     def end_and_close_transfer(self):
         print("\n 2d.")
