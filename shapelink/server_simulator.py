@@ -31,6 +31,11 @@ class ServerSimulator:
         self.registered = False
         self._first_call = True
         self.running = True
+        # ps attributes
+        self.port_address_ps = None
+        self.ip_address_ps = None
+        self.context_ps = None
+        self.socket_ps = None
 
     def _bind_to_socket_rr(self, bind_to, random_port):
         self.context_rr = zmq.Context.instance()
@@ -143,7 +148,6 @@ class ServerSimulator:
             # ie this point should raise an error saying you have chosen no
             # feats in your plugin
             print("feats list from Plugin is empty")
-            #self.feats = None
         # reply saying that server has received the features
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
