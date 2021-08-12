@@ -73,9 +73,9 @@ def run_plugin(with_simulator=None):
 
     th = threading.Thread(target=client_plugin.run_client)
     th.start()
-
+    # just handle path with the start_simulator function
     if with_simulator is not None:
-        server_simulator.start_simulator()
+        server_simulator.start_simulator(with_simulator)
     else:
         raise ValueError("We haven't implemented actual transfer yet.")
 

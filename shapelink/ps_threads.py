@@ -10,21 +10,22 @@ from PySide2 import QtCore
 from shapelink.util import qstream_write_array
 
 
-def subscriber_thread(socket, handle_event_func):
+topicfilter = b'A'
+
+
+def subscriber_thread(client_object):
     # start separate thread
 
-    topicfilter = "A"
-    socket.setsockopt_string(zmq.SUBSCRIBE, topicfilter)
+    client_object.socket_ps.setsockopt(zmq.SUBSCRIBE, topicfilter)
 
     while True:
-        data = socket.recv_string()
+        # data = client_object.socket_ps.recv_string()
         # run the plugin run_event_message then handle_event
         # which will execute your custom plugin
-        topic, messagedata = data.split()
-        print(messagedata)
-        # e = socket.recv()
-        # parse out the topicfilter
-        # handle_event_func(e)
+        # topic, messagedata = data.split()
+        # print(messagedata)
+        [topic, data] = client_object.socket_ps.recv_multipart()
+        client_object.handle_event(data)
 
 
 def publisher_thread(server_object):
@@ -43,7 +44,7 @@ def publisher_thread(server_object):
 # It just sends the events as they come
 def send_event_data(server_object):
     sc_features, tr_features, im_features = server_object.feats
-    with dclab.new_dataset(server_object.data_path) as ds:
+    with dclab.new_dataset(server_object.simulator_path) as ds:
         if server_object.verbose:
             print("Opened dataset", ds.identifier, ds.title)
 
@@ -71,8 +72,14 @@ def send_event_data(server_object):
                        np.array(scalars, dtype=np.float64),
                        vectors,
                        images)
+            print(f"Sending event {event_index}")
+            time.sleep(0.2)
+
+    print("Finished Data Transfer from pub side")
 
 
+# multippart message with topicfilter as first part
+# parse that info on subscriber side and run handle_event with it.
 def send_event(server_object,
                event_id: int,
                scalar_values: np.array,
@@ -111,6 +118,6 @@ def send_event(server_object,
 
     try:
         # send the message over the socket
-        server_object.socket_ps.send(msg)
+        server_object.socket_ps.send_multipart([topicfilter, msg])
     except zmq.error.ZMQError:
         print("ZMQ Error")

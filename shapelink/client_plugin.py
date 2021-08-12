@@ -177,9 +177,10 @@ class ShapeLinkPlugin(abc.ABC):
         print("\n 2a.")
         print("Starting Subscriber Thread")
         sub_thread = Thread(target=subscriber_thread,
-                            args=(self.socket_ps,))
+                            args=(self,))
         sub_thread.daemon = True
         sub_thread.start()
+        # subscriber_thread(self)
 
     def end_and_close_transfer(self):
         print("\n 2d.")
@@ -200,6 +201,12 @@ class ShapeLinkPlugin(abc.ABC):
                              f"{message_ids['MSG_ID_end_reply']}")
 
         print("Client closed")
+
+    # @abc.abstractmethod
+    def handle_event(self, event_data: EventData) -> bool:
+        """Abstract method to be overridden by plugins implementations"""
+        print(event_data)
+        return False
 
     # @abc.abstractmethod
     def choose_features(self):

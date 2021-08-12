@@ -1,6 +1,5 @@
 
 import zmq
-import time
 from threading import Thread
 from PySide2 import QtCore
 import numpy as np
@@ -12,7 +11,7 @@ from shapelink.util import qstream_write_array
 
 class ServerSimulator:
     def __init__(self,
-                 path=None,
+                 simulator_path=None,
                  bind_to='tcp://*:6667',
                  random_port=False,
                  verbose=False):
@@ -38,7 +37,7 @@ class ServerSimulator:
         self.context_ps = None
         self.socket_ps = None
         # path to data
-        self.data_path = path
+        self.simulator_path = simulator_path
 
     def _bind_to_socket_rr(self, bind_to, random_port):
         self.context_rr = zmq.Context.instance()
@@ -69,7 +68,7 @@ class ServerSimulator:
 
             elif r == message_ids["MSG_ID_events_code"]:
                 # sending data is handled in the publisher thread
-                self.start_publisher_thread()
+                self.start_publisher()
                 self.data_transfer_complete()
 
             elif r == message_ids["MSG_ID_end"]:
@@ -203,23 +202,25 @@ class ServerSimulator:
         self._send_msg_info(msg)
         self.registered = True
 
-    def start_publisher_thread(self):
+    def start_publisher(self):
         print("2b.")
-        print("Starting Publisher Thread")
-        pub_thread = Thread(target=publisher_thread,
-                            args=(self,))
-        pub_thread.daemon = True
-        pub_thread.start()
+        print("Starting Publisher")
+        # pub_thread = Thread(target=publisher_thread,
+        #                     args=(self,))
+        # pub_thread.daemon = True
+        # pub_thread.start()
+        publisher_thread(self)
 
     def data_transfer_complete(self):
         # in current thread, simulate some time used to send data
-        print("Sending data...")
-        time.sleep(10)
+        # print("Sending data...")
+        # time.sleep(10)
         # reply saying that server has completed transfer of all data
         print("2c.")
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
-        msg_stream.writeInt64(message_ids["MSG_ID_events_code_complete"])
+        msg_stream.writeInt64(
+            message_ids["MSG_ID_events_code_complete"])
         self._send_msg_info(msg)
 
     def close_process(self):
@@ -234,6 +235,6 @@ class ServerSimulator:
         print("Server closed")
 
 
-def start_simulator(path):
-    s = ServerSimulator()
+def start_simulator(simulator_path):
+    s = ServerSimulator(simulator_path=simulator_path)
     s.run_server()
