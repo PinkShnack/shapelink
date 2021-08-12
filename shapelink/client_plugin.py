@@ -237,13 +237,12 @@ class ShapeLinkPlugin(abc.ABC):
                         "Image feature '{}' not recognised".format(im_name))
         return e
 
-    # @abc.abstractmethod
+    @abc.abstractmethod
     def handle_event(self, event_data: EventData) -> bool:
         """Abstract method to be overridden by plugins implementations"""
-        print(f"Data is: {event_data.scalars}")
         return False
 
-    # @abc.abstractmethod
+    @abc.abstractmethod
     def choose_features(self):
         """Abstract method to be overridden by plugins implementations.
 
@@ -255,10 +254,9 @@ class ShapeLinkPlugin(abc.ABC):
         --features (-f) option of the command line interface.
 
         """
-        # return list()
-        return ["deform"]
+        return list()
 
 
-def run_client():
-    cl = ShapeLinkPlugin()
-    cl.run_client()
+# def run_client():
+#     cl = ShapeLinkPlugin()
+#     cl.run_client()

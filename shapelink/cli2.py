@@ -42,10 +42,11 @@ def run_simulator(path, features=None):
 
 
 @click.command()
+@click.argument("path")
 @click.option("--with-simulator", "-w",
               help="Run the Shape-In simulator in the background "
                    + "using the RT-DC dataset specified (used for testing).")
-def run_plugin(with_simulator=None):
+def run_plugin(path, with_simulator=None):
     """Run a Shape-Link plugin file
 
     Example usages::
@@ -58,22 +59,19 @@ def run_plugin(with_simulator=None):
 
     """
 
-    # path = pathlib.Path(path)
-    # # insert the plugin directory to sys.path so we can import it
-    # sys.path.insert(-1, str(path.parent))
-    # plugin = importlib.import_module(path.stem)
-    # # undo our path insertion
-    # sys.path.pop(0)
-    # # run the plugin
-    # click.secho("Running Shape-Link plugin '{}'...".format(path.stem),
-    #             bold=True)
-    # p = plugin.info["class"]()
-    # while True:
-    #     p.handle_messages()
-
-    th = threading.Thread(target=client_plugin.run_client)
+    path = pathlib.Path(path)
+    # insert the plugin directory to sys.path so we can import it
+    sys.path.insert(-1, str(path.parent))
+    plugin = importlib.import_module(path.stem)
+    # undo our path insertion
+    sys.path.pop(0)
+    # run the plugin
+    click.secho("Running Shape-Link plugin '{}'...".format(path.stem),
+                bold=True)
+    p = plugin.info["class"]()
+    th = threading.Thread(target=p.run_client)
     th.start()
-    # just handle path with the start_simulator function
+
     if with_simulator is not None:
         server_simulator.start_simulator(with_simulator)
     else:
