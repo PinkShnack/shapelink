@@ -9,6 +9,7 @@ import numpy as np
 from shapelink.ps_threads import subscriber_thread
 from shapelink.msg_def import message_ids
 from shapelink.util import qstream_read_array
+from feat_util import map_requested_features_to_defined_features
 
 
 class EventData:
@@ -35,6 +36,7 @@ class ShapeLinkPlugin(abc.ABC):
         self.image_names = []
         self.image_shape = None
         self.image_shape_len = 2
+        self.feats = []
         self.registered = False
         self.response = list()
         self.sleep_time = 0.5
@@ -78,10 +80,19 @@ class ShapeLinkPlugin(abc.ABC):
     def send_features_to_server(self):
         # send features
         # features defined by user plugin `choose_features`
-        sc_features, tr_features, im_features = ['deform'], ['trace'], ['image']
-        feats = list((sc_features, tr_features, im_features))
-        assert isinstance(feats, list), "feats is a list"
-        assert len(feats) == 3
+        # sc_features, tr_features, im_features = ['deform'], ['trace'], ['image']
+        # feats = list((sc_features, tr_features, im_features))
+
+        user_feats = self.choose_features()
+        print(user_feats)
+        if len(user_feats) == 0:
+            self.feats = list(([], [], []))
+        else:
+            self.feats = map_requested_features_to_defined_features(user_feats)
+
+        assert isinstance(self.feats, list), "feats is a list"
+        assert len(self.feats) == 3
+        print(self.feats)
 
         print("\n 1a.1")
         print("Sending Features code")
@@ -90,7 +101,7 @@ class ShapeLinkPlugin(abc.ABC):
         msg_stream.writeInt64(message_ids["MSG_ID_feats_code"])
         # feats must be sent one by one, list of lists doesn't work
         print("Sending Features")
-        for feat in feats:
+        for feat in self.feats:
             msg_stream.writeQStringList(feat)
         self.socket_rr.send(msg)
 
@@ -181,6 +192,20 @@ class ShapeLinkPlugin(abc.ABC):
                              f"{message_ids['MSG_ID_end_reply']}")
 
         print("Client closed")
+
+    # @abc.abstractmethod
+    def choose_features(self):
+        """Abstract method to be overridden by plugins implementations.
+
+        Notes
+        -----
+        When features are chosen by a plugin implementation, only those chosen
+        features will be transferred between ShapeIn and the plugin. This has
+        the effect of ignoring any features specified by the user in the
+        --features (-f) option of the command line interface.
+
+        """
+        return list()
 
 
 cl = ShapeLinkPlugin()

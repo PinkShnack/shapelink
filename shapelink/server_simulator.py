@@ -128,8 +128,8 @@ class ServerSimulator:
         # receive the features
         print("Receiving features...")
         for i in range(3):
-            print("here is the problem")
             feat = rcv_stream.readQStringList()
+            print(feat)
             self.feats.append(feat)
         # check that the features are correct...
         assert isinstance(self.feats, list), "feats is a list"
@@ -142,7 +142,7 @@ class ServerSimulator:
             # provide feats (via plugin)
             # ie this point should raise an error saying you have chosen no
             # feats in your plugin
-            raise ValueError("self.feats is empty")
+            print("feats list from Plugin is empty")
             #self.feats = None
         # reply saying that server has received the features
         msg = QtCore.QByteArray()
