@@ -43,7 +43,7 @@ jobs:
         #coverage run -m --source=shapelink pytest --ignore=tests/benchmarking_tests
     - name: Lint with flake8
       run: |
-        flake8 .
+        flake8 plugins tests shapelink
     - name: Submit code coverage
       run: |
         coverage report -m
