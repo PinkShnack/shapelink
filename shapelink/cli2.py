@@ -59,6 +59,7 @@ def run_plugin(path, with_simulator=None):
 
     """
 
+    verbose = True
     path = pathlib.Path(path)
     # insert the plugin directory to sys.path so we can import it
     sys.path.insert(-1, str(path.parent))
@@ -69,11 +70,12 @@ def run_plugin(path, with_simulator=None):
     click.secho("Running Shape-Link plugin '{}'...".format(path.stem),
                 bold=True)
     p = plugin.info["class"]()
+    p.verbose = verbose
     th = threading.Thread(target=p.run_client)
     th.start()
 
     if with_simulator is not None:
-        server_simulator.start_simulator(with_simulator)
+        server_simulator.start_simulator(with_simulator, verbose=verbose)
     else:
         raise ValueError("We haven't implemented actual transfer yet.")
 

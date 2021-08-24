@@ -25,3 +25,5 @@ message_ids = {
     "MSG_ID_end": -80,
     "MSG_ID_end_reply": -81,
 }
+
+topicfilter_ids = {"topicfilter_001": b"B"}

@@ -6,10 +6,10 @@ from threading import Thread
 from PySide2 import QtCore
 import numpy as np
 
-from shapelink.ps_threads import subscriber_thread
-from shapelink.msg_def import message_ids
-from shapelink.util import qstream_read_array
-from shapelink.feat_util import map_requested_features_to_defined_features
+from .ps_threads import subscriber_thread
+from .msg_def import message_ids
+from .util import qstream_read_array
+from .feat_util import map_requested_features_to_defined_features
 
 
 class EventData:
@@ -29,6 +29,12 @@ class ShapeLinkPlugin(abc.ABC):
         # self.socket.RCVTIMEO = 5000
         # self.socket.SNDTIMEO = 5000
         self.socket_rr.connect(destination)
+        self.ip_address_rr = destination[:-5]
+        self.port_address_rr = destination[-4:]
+        self.verbose = verbose
+        if self.verbose:
+            print(" Init Client Plugin")
+            print(f" Connect to: {self.ip_address_rr}:{self.port_address_rr}")
         # other attributes
         self.scalar_len = 0
         self.vector_len = 0
@@ -77,8 +83,9 @@ class ShapeLinkPlugin(abc.ABC):
         else:
             raise ValueError("len(ip_address) != 1,"
                              f"len(ip_address) == {len(ip_address_ps)} instead")
-
-        print(f"ps client connecting to {self.ip_address_ps}{self.port_address_ps}")
+        if self.verbose:
+            print("PUB-SUB socket connecting to "
+                  f"{self.ip_address_ps}{self.port_address_ps}")
 
         # connect up the ps socket
         self.context_ps = zmq.Context.instance()
@@ -92,7 +99,6 @@ class ShapeLinkPlugin(abc.ABC):
         # feats = list((sc_features, tr_features, im_features))
 
         user_feats = self.choose_features()
-        print(user_feats)
         if len(user_feats) == 0:
             self.feats = list(([], [], []))
         else:
@@ -100,15 +106,13 @@ class ShapeLinkPlugin(abc.ABC):
 
         assert isinstance(self.feats, list), "feats is a list"
         assert len(self.feats) == 3
-        print(self.feats)
-
-        print("\n 1a.1")
-        print("Sending Features code")
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeInt64(message_ids["MSG_ID_feats_code"])
         # feats must be sent one by one, list of lists doesn't work
-        print("Sending Features")
+        if self.verbose:
+            print(f"User features: {self.feats}")
+            print("Sending Features")
         for feat in self.feats:
             msg_stream.writeQStringList(feat)
         self.socket_rr.send(msg)
@@ -117,75 +121,71 @@ class ShapeLinkPlugin(abc.ABC):
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
         r = rcv_stream.readInt64()
         if r == message_ids["MSG_ID_feats_code_reply"]:
-            print("Features successfully received by server")
+            if self.verbose:
+                print("Features successfully received by server")
         else:
             raise ValueError("ID code not correct, should be "
                              f"{message_ids['MSG_ID_feats_code_reply']}")
 
     def register_parameters(self):
-        print('\n 1a.2')
-        print("Requesting Parameters")
+        if self.verbose:
+            print("Requesting Parameters")
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeInt64(message_ids["MSG_ID_params_code"])
         self.socket_rr.send(msg)
 
-        print("Receiving Parameters...")
+        if self.verbose:
+            print("Receiving Parameters...")
         rcv = QtCore.QByteArray(self.socket_rr.recv())
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
         self.reg_features.scalars = rcv_stream.readQStringList()
         self.reg_features.traces = rcv_stream.readQStringList()
         self.reg_features.images = rcv_stream.readQStringList()
         self.image_shape = qstream_read_array(rcv_stream, np.uint16)
-        # image_shape_len = 2
         self.scalar_len = len(self.reg_features.scalars)
         self.vector_len = len(self.reg_features.traces)
         self.image_len = len(self.reg_features.images)
-        # print(image_shape_len)
-        # print(image_shape)
-        # assert image_shape_len == len(image_shape)
-
-        print(" Registered data container formats:")
-        print(" scalars:", self.reg_features.scalars)
-        print(" traces:", self.reg_features.traces)
-        print(" images:", self.reg_features.images)
-        print(" image_shape:", self.image_shape)
+        if self.verbose:
+            print(" Registered data container formats:")
+            print(" scalars:", self.reg_features.scalars)
+            print(" traces:", self.reg_features.traces)
+            print(" images:", self.reg_features.images)
+            print(" image_shape:", self.image_shape)
 
     def request_data_transfer(self):
         # make sure to start the subscriber before the publisher to
         # not miss data transfer
-        # start separate thread for data transfer
         self.start_subscriber_thread()
-
-        # now trigger the publisher thread to start
-        print("Requesting Data Transfer")
+        # now trigger the publisher to start
+        if self.verbose:
+            print("Requesting Data Transfer")
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeInt64(message_ids["MSG_ID_events_code"])
         self.socket_rr.send(msg)
-
-        # receive confirmation that the server has completed transfer of all data
+        # receive confirmation that the server has completed transfer of data
         rcv = QtCore.QByteArray(self.socket_rr.recv())
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
         r = rcv_stream.readInt64()
         if r == message_ids["MSG_ID_events_code_complete"]:
-            print("Data transfer complete")
+            if self.verbose:
+                print("Data transfer complete")
         else:
             raise ValueError("ID code not correct, should be "
                              f"{message_ids['MSG_ID_events_code_complete']}")
 
     def start_subscriber_thread(self):
-        print("\n 2a.")
-        print("Starting Subscriber Thread")
+        if self.verbose:
+            print("Starting Subscriber Thread")
         sub_thread = Thread(target=subscriber_thread,
                             args=(self,))
         sub_thread.daemon = True
         sub_thread.start()
-        # subscriber_thread(self)
 
     def end_and_close_transfer(self):
-        print("\n 2d.")
-        print("Prompting End to Process")
+        if self.verbose:
+            print("Prompting End to Process")
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeInt64(message_ids["MSG_ID_end"])
@@ -196,7 +196,8 @@ class ShapeLinkPlugin(abc.ABC):
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
         r = rcv_stream.readInt64()
         if r == message_ids["MSG_ID_end_reply"]:
-            print("Client closing")
+            if self.verbose:
+                print("Client closing")
         else:
             raise ValueError("ID code not correct, should be "
                              f"{message_ids['MSG_ID_end_reply']}")
@@ -262,8 +263,3 @@ class ShapeLinkPlugin(abc.ABC):
 
         """
         return list()
-
-
-# def run_client():
-#     cl = ShapeLinkPlugin()
-#     cl.run_client()

@@ -6,23 +6,15 @@ import dclab
 from typing import List
 from PySide2 import QtCore
 
-from shapelink.util import qstream_write_array
-
-
-topicfilter = b'A'
+from .util import qstream_write_array
+from .msg_def import topicfilter_ids
 
 
 def subscriber_thread(client_object):
-    # run in separate thread
-
-    client_object.socket_ps.setsockopt(zmq.SUBSCRIBE, topicfilter)
+    client_object.socket_ps.setsockopt(zmq.SUBSCRIBE,
+                                       topicfilter_ids["topicfilter_001"])
 
     while True:
-        # data = client_object.socket_ps.recv_string()
-        # run the plugin run_event_message then handle_event
-        # which will execute your custom plugin
-        # topic, messagedata = data.split()
-        # print(messagedata)
         [_, data] = client_object.socket_ps.recv_multipart()
         rcv = QtCore.QByteArray(data)
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
@@ -34,13 +26,16 @@ def publisher_thread(server_object):
     send_dataset(server_object)
 
 
-# The job of this function is to simulate the shapein sending transfer
-# It just sends the events as they come
 def send_dataset(server_object):
+    """The job of this function is to simulate the shapein sending transfer
+    It just sends the events as they come"""
     sc_features, tr_features, im_features = server_object.feats
     with dclab.new_dataset(server_object.simulator_path) as ds:
         if server_object.verbose:
             print("Opened dataset", ds.identifier, ds.title)
+
+        t0 = time.perf_counter_ns()
+        c = 0
 
         if server_object.verbose:
             print("Send event data:")
@@ -66,14 +61,18 @@ def send_dataset(server_object):
                        np.array(scalars, dtype=np.float64),
                        vectors,
                        images)
-            print(f"Sending event {event_index}")
+            c += 1
+
+        if server_object.verbose:
+            t1 = time.perf_counter_ns()
+            dt = (t1 - t0) * 1e-9
             time.sleep(0.2)
+            print("Simulation event rate: {:.5g} Hz".format(c / dt))
+            print("Simulation time per event: {:.5g} s".format(dt / c))
+            print("Simulation time: {:.5g} s".format(dt))
+            print("Publisher Finished Data Transfer")
 
-    print("Finished Data Transfer from pub side")
 
-
-# multippart message with topicfilter as first part
-# parse that info on subscriber side and run handle_event with it.
 def send_event(server_object,
                event_id: int,
                scalar_values: np.array,
@@ -112,6 +111,9 @@ def send_event(server_object,
 
     try:
         # send the message over the socket
-        server_object.socket_ps.send_multipart([topicfilter, msg])
+        # multippart message with topicfilter as first part
+        # parse that info on subscriber side and run handle_event with it.
+        server_object.socket_ps.send_multipart(
+            [topicfilter_ids["topicfilter_001"], msg])
     except zmq.error.ZMQError:
         print("ZMQ Error")

@@ -14,7 +14,7 @@ class VerifyAspectRatioPlugin(ShapeLinkPlugin):
         super(VerifyAspectRatioPlugin, self).__init__(*args, **kwargs)
 
     def after_register(self):
-        print(" Preparing for transmission")
+        print("\n Preparing for transmission\n")
 
     def after_transmission(self):
         print("\n End of transmission\n")

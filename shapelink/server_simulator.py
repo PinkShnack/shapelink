@@ -3,9 +3,9 @@ import zmq
 from PySide2 import QtCore
 import numpy as np
 
-from shapelink.ps_threads import publisher_thread
-from shapelink.msg_def import message_ids
-from shapelink.util import qstream_write_array
+from .ps_threads import publisher_thread
+from .msg_def import message_ids
+from .util import qstream_write_array
 
 
 class ServerSimulator:
@@ -19,7 +19,7 @@ class ServerSimulator:
         self.verbose = verbose
         if self.verbose:
             print(" Init Server Simulator")
-            print(" Bind to: {}:{}".format(self.ip_address, self.port_address))
+            print(f" Bind to: {self.ip_address_rr}:{self.port_address_rr}")
         self.feats = []
         self.scalar_len = 0
         self.vector_len = 0
@@ -44,11 +44,11 @@ class ServerSimulator:
         # self.socket_rr.RCVTIMEO = 5000
         # self.socket_rr.SNDTIMEO = 5000
         # The rr port number should be four digits long if not random
-        self.ip_address = bind_to[:-5]
-        self.port_address = bind_to[-4:]
+        self.ip_address_rr = bind_to[:-5]
+        self.port_address_rr = bind_to[-4:]
         if random_port:
-            self.port_address = self.socket_rr.bind_to_random_port(
-                self.ip_address)
+            self.port_address_rr = self.socket_rr.bind_to_random_port(
+                self.ip_address_rr)
         else:
             self.socket_rr.bind(bind_to)
 
@@ -78,14 +78,13 @@ class ServerSimulator:
                     f"Did not understand message received from Client: {r}")
 
     def receive_request_from_client(self):
-        print("\n")
         if self._first_call:   # needed for accurate line_profiler tests
             try:
                 message = self.socket_rr.recv()
                 rcv = QtCore.QByteArray(message)
             except zmq.error.ZMQError:
                 if self.verbose:
-                    print("ZMQ Error - timed out")
+                    print("ZMQ Error")
                 return
             self._first_call = False
         else:
@@ -94,27 +93,28 @@ class ServerSimulator:
                 rcv = QtCore.QByteArray(message)
             except zmq.error.ZMQError:
                 if self.verbose:
-                    print("ZMQ Error - timed out")
+                    print("ZMQ Error")
                 return
 
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
         r = rcv_stream.readInt64()
-        print(r)
+        if self.verbose:
+            print(f"Request code received: {r}")
         return r, rcv_stream
 
     def connect_ps_socket(self):
-        # connect up the ps socket
-        print("ps server binding...")
+        """Bind to the Publisher-subscriber socket"""
         self.context_ps = zmq.Context.instance()
         self.socket_ps = self.context_ps.socket(zmq.PUB)
         self.port_address_ps = self.socket_ps.bind_to_random_port(
-            self.ip_address)
-        print("ps server bound to "
-              f"{self.ip_address}:{self.port_address_ps}")
+            self.ip_address_rr)
+        if self.verbose:
+            print("PUB-SUB socket bound to "
+                  f"{self.ip_address_rr}:{self.port_address_ps}")
         # send the port_address to the client
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
-        msg_stream.writeQStringList([self.ip_address])
+        msg_stream.writeQStringList([self.ip_address_rr])
         msg_stream.writeInt64(self.port_address_ps)
         self._send_msg_info(msg)
 
@@ -129,27 +129,17 @@ class ServerSimulator:
             return
 
     def receive_features(self, rcv_stream):
-        print("1b.1")
-        print("Feature code received")
-        # receive the features
-        print("Receiving features...")
+        """Receive the features"""
+        if self.verbose:
+            print("Receiving features...")
         for i in range(3):
             feat = rcv_stream.readQStringList()
-            print(feat)
             self.feats.append(feat)
-        # check that the features are correct...
+        # check that the features are correct
         assert isinstance(self.feats, list), "feats is a list"
         assert len(self.feats) == 3
-        print(len([i for sublist in self.feats for i in sublist]))
         if len([i for sublist in self.feats for i in sublist]) == 0:
-            if self.verbose:
-                print("Feature Request List Empty")
-            # may delete this cli feat option, cleaner to have only one way to
-            # provide feats (via plugin)
-            # ie this point should raise an error saying you have chosen no
-            # feats in your plugin
-            print("feats list from Plugin is empty")
-        # reply saying that server has received the features
+            raise ValueError("Feature list received from Plugin is empty")
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeInt64(message_ids["MSG_ID_feats_code_reply"])
@@ -162,9 +152,9 @@ class ServerSimulator:
                             image_shape=None,
                             settings_names=None,
                             settings_values=None):
-        print("1b.2")
-        print("Registering Parameters")
         """Register parameters that are sent to other processes"""
+        if self.verbose:
+            print("Registering Parameters")
         if settings_values is None:
             settings_values = []
         if settings_names is None:
@@ -189,9 +179,8 @@ class ServerSimulator:
         self.image_names = image_reg_features
         self.image_shape = image_shape
         self.image_shape_len = len(image_shape)
-        print(self.image_shape)
-        # send parameters
-        print("Sending Parameters")
+        if self.verbose:
+            print("Sending Parameters")
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeQStringList(scalar_reg_features)
@@ -202,28 +191,17 @@ class ServerSimulator:
         self.registered = True
 
     def start_publisher(self):
-        print("2b.")
-        print("Starting Publisher")
-        # pub_thread = Thread(target=publisher_thread,
-        #                     args=(self,))
-        # pub_thread.daemon = True
-        # pub_thread.start()
+        if self.verbose:
+            print("Starting Publisher")
         publisher_thread(self)
 
     def data_transfer_complete(self):
-        # in current thread, simulate some time used to send data
-        # print("Sending data...")
-        # time.sleep(10)
-        # reply saying that server has completed transfer of all data
-        print("2c.")
         msg = QtCore.QByteArray()
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
-        msg_stream.writeInt64(
-            message_ids["MSG_ID_events_code_complete"])
+        msg_stream.writeInt64(message_ids["MSG_ID_events_code_complete"])
         self._send_msg_info(msg)
 
     def close_process(self):
-        print("Ending and Closing")
         # stop the while loop after exciting this elif statement
         self.running = False
         # confirm that the server is closing
@@ -231,9 +209,10 @@ class ServerSimulator:
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeInt64(message_ids["MSG_ID_end_reply"])
         self._send_msg_info(msg)
-        print("Server closing")
+        if self.verbose:
+            print("Server closing")
 
 
-def start_simulator(simulator_path):
-    s = ServerSimulator(simulator_path=simulator_path)
+def start_simulator(simulator_path, verbose=False):
+    s = ServerSimulator(simulator_path=simulator_path, verbose=verbose)
     s.run_server()
