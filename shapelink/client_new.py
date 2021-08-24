@@ -97,9 +97,9 @@ def register_parameters():
     eventdata.images = rcv_stream.readQStringList()
     image_shape = qstream_read_array(rcv_stream, np.uint16)
     # image_shape_len = 2
-    scalar_len = len(eventdata.scalars)
-    vector_len = len(eventdata.traces)
-    image_len = len(eventdata.images)
+    # scalar_len = len(eventdata.scalars)
+    # vector_len = len(eventdata.traces)
+    # image_len = len(eventdata.images)
     # print(image_shape_len)
     # print(image_shape)
     # assert image_shape_len == len(image_shape)

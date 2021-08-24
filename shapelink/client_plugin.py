@@ -81,8 +81,9 @@ class ShapeLinkPlugin(abc.ABC):
             ip_address_ps = ip_address_ps[0]
             self.ip_address_ps = ip_address_ps.replace('*', 'localhost:')
         else:
-            raise ValueError("len(ip_address) != 1,"
-                             f"len(ip_address) == {len(ip_address_ps)} instead")
+            raise ValueError(
+                "len(ip_address) != 1,"
+                f"len(ip_address) == {len(ip_address_ps)} instead")
         if self.verbose:
             print("PUB-SUB socket connecting to "
                   f"{self.ip_address_ps}{self.port_address_ps}")
@@ -95,7 +96,8 @@ class ShapeLinkPlugin(abc.ABC):
     def send_features_to_server(self):
         # send features
         # features defined by user plugin `choose_features`
-        # sc_features, tr_features, im_features = ['deform'], ['trace'], ['image']
+        # sc_features, tr_features, im_features =
+        #  ['deform'], ['trace'], ['image']
         # feats = list((sc_features, tr_features, im_features))
 
         user_feats = self.choose_features()
