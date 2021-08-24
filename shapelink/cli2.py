@@ -7,7 +7,6 @@ import click
 
 from . import shapein_simulator
 from . import server_simulator
-from . import client_plugin
 
 
 @click.group()
