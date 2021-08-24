@@ -13,11 +13,11 @@ class VerifyAspectRatioPlugin(ShapeLinkPlugin):
     def __init__(self, *args, **kwargs):
         super(VerifyAspectRatioPlugin, self).__init__(*args, **kwargs)
 
-    # def after_register(self):
-    #     print(" Preparing for transmission")
-    #
-    # def after_transmission(self):
-    #     print("\n End of transmission\n")
+    def after_register(self):
+        print(" Preparing for transmission")
+
+    def after_transmission(self):
+        print("\n End of transmission\n")
 
     def choose_features(self):
         user_feats = ["size_x", "size_y", "aspect"]

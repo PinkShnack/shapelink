@@ -231,7 +231,7 @@ class ServerSimulator:
         msg_stream = QtCore.QDataStream(msg, QtCore.QIODevice.WriteOnly)
         msg_stream.writeInt64(message_ids["MSG_ID_end_reply"])
         self._send_msg_info(msg)
-        print("Server closed")
+        print("Server closing")
 
 
 def start_simulator(simulator_path):

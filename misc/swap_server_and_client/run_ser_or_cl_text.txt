@@ -1,6 +1,8 @@
 python shapelink\server_simulator.py
 python shapelink\client_plugin.py
 
+shape-link run-plugin -w tests/data/calibration_beads_47.rtdc plugins/slp_verify_aspect_ratio2.py
+
 python shapelink\server_new.py
 python shapelink\client_new.py
 

@@ -53,8 +53,10 @@ class ShapeLinkPlugin(abc.ABC):
         # Metadata Transfer
         self.send_features_to_server()
         self.register_parameters()
+        self.after_register()
         # Data Transfer
         self.request_data_transfer()
+        self.after_transmission()
         # Close Process
         self.end_and_close_transfer()
 
@@ -194,12 +196,10 @@ class ShapeLinkPlugin(abc.ABC):
         rcv_stream = QtCore.QDataStream(rcv, QtCore.QIODevice.ReadOnly)
         r = rcv_stream.readInt64()
         if r == message_ids["MSG_ID_end_reply"]:
-            print("Server closed")
+            print("Client closing")
         else:
             raise ValueError("ID code not correct, should be "
                              f"{message_ids['MSG_ID_end_reply']}")
-
-        print("Client closed")
 
     def run_event_message(self, rcv_stream):
         e = EventData()
@@ -236,6 +236,13 @@ class ShapeLinkPlugin(abc.ABC):
                     raise ValueError(
                         "Image feature '{}' not recognised".format(im_name))
         return e
+
+    def after_register(self):
+        """Called after registration with Shape-In is complete"""
+        pass
+
+    def after_transmission(self):
+        """Called after Shape-In ends data transmission"""
 
     @abc.abstractmethod
     def handle_event(self, event_data: EventData) -> bool:
