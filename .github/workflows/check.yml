@@ -35,9 +35,12 @@ jobs:
       run: |
         #pytest tests/benchmarking_tests --benchmark-sort="name" --benchmark-storage=".benchmarks_github_actions" --benchmark-json="output.json" --benchmark-compare="*/ActionsBenchmark_21-07-06_UBUNTUpy37" --benchmark-compare-fail=median:25%
         #cat output.json
+    - name: Swap Tests
+      run: |
+        pytest tests/test_swap.py
     - name: Test with pytest
       run: |
-        coverage run -m --source=shapelink pytest --ignore=tests/benchmarking_tests tests/test_swap.py
+        #coverage run -m --source=shapelink pytest --ignore=tests/benchmarking_tests
     - name: Lint with flake8
       run: |
         flake8 .
